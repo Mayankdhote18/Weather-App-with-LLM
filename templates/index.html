@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Weather Forecast</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      min-height: 100vh;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      color: white;
+    }
+    h1 { font-size: 2rem; margin-bottom: 5px; }
+    .subtitle { opacity: 0.9; font-size: 1rem; }
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .card-title {
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .location-search {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      min-width: 160px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: translateY(-2px); }
+    .current-weather {
+      text-align: center;
+      padding: 15px;
+      background: linear-gradient(135deg, #74b9ff, #0984e3);
+      color: white;
+      border-radius: 10px;
+    }
+    .current-temp { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+    .weather-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+    .forecast-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .forecast-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .forecast-date { font-weight: 600; margin-bottom: 10px; }
+    .forecast-temp { font-size: 1.5rem; font-weight: bold; margin: 10px 0; }
+    .loading, .error, .success {
+      text-align: center;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 10px;
+      font-size: 0.95rem;
+    }
+    .loading { background: #fff3cd; color: #856404; }
+    .error { background: #f8d7da; color: #721c24; }
+    .success { background: #d4edda; color: #155724; }
+    .api-status {
+      text-align: center;
+      padding: 8px;
+      font-size: 0.85rem;
+      color: #636e72;
+    }
+    .city-suggestions {
+      position: absolute;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      width: calc(100% - 20px);
+      max-width: 300px;
+    }
+    .suggestion-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .suggestion-item:hover {
+      background: #f0f0f0;
+    }
+    /* 🔹 RESPONSIVE FIXES */
+    @media (max-width: 768px) {
+      h1 { font-size: 1.7rem; }
+      .card { padding: 15px; }
+      .forecast-container { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .location-search { flex-direction: column; }
+      .forecast-container { grid-template-columns: 1fr; }
+      .current-temp { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌤️ India Weather Forecast</h1>
+      <p class="subtitle">Get weather information for Indian cities only</p>
+    </header>
+
+    <!-- Current weather -->
+    <div class="card">
+      <h2 class="card-title">📍 Select Indian City</h2>
+      <div class="location-search">
+        <div style="position: relative; flex: 1;">
+          <input type="text" id="city-input" placeholder="Search Indian city..." value="Mumbai" autocomplete="off">
+          <div id="city-suggestions" class="city-suggestions" style="display: none;"></div>
+        </div>
+        <button id="btn-search">🔍 Get Current Weather</button>
+      </div>
+      <div id="current-weather" class="current-weather">
+        <div class="loading">⏳ Loading current weather...</div>
+      </div>
+    </div>
+
+    <!-- Forecast -->
+    <div class="card">
+      <h2 class="card-title">📈 7-Day Forecast</h2>
+      <button id="btn-forecast">🌤️ Generate Forecast</button>
+      <div id="message"></div>
+      <div id="forecast-container" class="forecast-container">
+        <div class="loading">⏳ Select a city to see forecast...</div>
+      </div>
+      <div id="api-status" class="api-status"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const cityInput = document.getElementById("city-input");
+      const searchBtn = document.getElementById("btn-search");
+      const forecastBtn = document.getElementById("btn-forecast");
+      const currentWeather = document.getElementById("current-weather");
+      const forecastContainer = document.getElementById("forecast-container");
+      const messageDiv = document.getElementById("message");
+      const apiStatus = document.getElementById("api-status");
+      const citySuggestions = document.getElementById("city-suggestions");
+
+      let currentCity = "Mumbai";
+      let availableCities = [];
+
+      // Fetch available Indian cities
+      fetch('/api/locations/search')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            availableCities = data.locations.map(loc => loc.city);
+          }
+        })
+        .catch(err => console.error("Error fetching cities:", err));
+
+      // Setup event listeners
+      searchBtn.addEventListener("click", searchWeather);
+      forecastBtn.addEventListener("click", generateForecast);
+      
+      // City input suggestions
+      cityInput.addEventListener("input", function() {
+        const query = this.value.toLowerCase();
+        if (query.length < 2) {
+          citySuggestions.style.display = 'none';
+          return;
+        }
+        
+        const filtered = availableCities.filter(city => 
+          city.toLowerCase().includes(query)
+        );
+        
+        if (filtered.length > 0) {
+          citySuggestions.innerHTML = filtered.map(city => 
+            `<div class="suggestion-item" data-city="${city}">${city}</div>`
+          ).join('');
+          citySuggestions.style.display = 'block';
+        } else {
+          citySuggestions.style.display = 'none';
+        }
+      });
+      
+      // Hide suggestions when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!cityInput.contains(e.target) && !citySuggestions.contains(e.target)) {
+          citySuggestions.style.display = 'none';
+        }
+      });
+      
+      // Select suggestion
+      citySuggestions.addEventListener('click', function(e) {
+        if (e.target.classList.contains('suggestion-item')) {
+          cityInput.value = e.target.getAttribute('data-city');
+          citySuggestions.style.display = 'none';
+        }
+      });
+
+      function searchWeather() {
+        const city = cityInput.value.trim();
+        if (!city) { 
+          showError("Please enter a city name"); 
+          return; 
+        }
+        
+        currentCity = city;
+        currentWeather.innerHTML = '<div class="loading">⏳ Loading current weather...</div>';
+
+        // Call our Flask API
+        fetch('/api/weather/current', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ city: city })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              displayCurrentWeather(data.weather);
+              messageDiv.innerHTML = '<div class="success">✅ Current weather loaded</div>';
+              updateApiStatus(data.weather.source);
+            } else {
+              showError("Error: " + data.error);
+            }
+          })
+          .catch(err => showError("Network error: " + err));
+      }
+
+      function generateForecast() {
+        messageDiv.innerHTML = '<div class="loading">⏳ Generating forecast...</div>';
+
+        // Call our Flask API
+        fetch('/api/weather/forecast', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            city: currentCity,
+            days: 7 
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              displayForecast(data.forecast);
+              updateApiStatus(data.forecast.data_source);
+            } else {
+              showError("Error: " + data.error);
+            }
+          })
+          .catch(err => showError("Network error: " + err));
+      }
+
+      function displayCurrentWeather(weather) {
+        currentWeather.innerHTML = `
+          <h2>${weather.city}, India</h2>
+          <div class="current-temp">${Math.round(weather.temperature)}°C</div>
+          <div>${weather.description}</div>
+          <div class="weather-details">
+            <div>💧 Humidity: ${weather.humidity}%</div>
+            <div>📊 Pressure: ${weather.pressure} hPa</div>
+            <div>💨 Wind: ${weather.wind_speed} m/s</div>
+            <div>📡 Source: ${weather.source}</div>
+          </div>`;
+      }
+
+      function displayForecast(forecast) {
+        let html = "";
+        forecast.forecasts.forEach(day => {
+          const date = new Date(day.date);
+          const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+          const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          html += `
+            <div class="forecast-card">
+              <div class="forecast-date">${dayName}, ${dateStr}</div>
+              <div class="forecast-temp">${day.temperature}°C</div>
+              <div>${day.condition}</div>
+              <div>💧 ${day.humidity}%</div>
+              <div>📊 ${day.pressure} hPa</div>
+              <div>💨 ${day.wind_speed} m/s</div>
+            </div>`;
+        });
+        forecastContainer.innerHTML = html;
+        messageDiv.innerHTML = `<div class="success">✅ 7-day forecast for ${forecast.location.city}, India</div>`;
+      }
+
+      function updateApiStatus(source) {
+        apiStatus.innerHTML = (source === "api")
+          ? "✅ Using real-time data from OpenWeatherMap API"
+          : "⚠️ Using simulated data (API not configured)";
+      }
+
+      function showError(msg) {
+        messageDiv.innerHTML = `<div class="error">❌ ${msg}</div>`;
+      }
+
+      // Auto-load default city weather
+      searchWeather();
+    });
+  </script>
+</body>
+</html>
